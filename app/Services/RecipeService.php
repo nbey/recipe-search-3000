@@ -13,11 +13,6 @@ class RecipeService
         return Recipe::where('slug', $slug)->firstOrFail();
     }
 
-    public function getAllRecipes(int $perPage = 5)
-    {
-        return Recipe::paginate($perPage)
-          ->withQueryString();
-    }
 
     /**
      * Search recipes by author email, keyword, and ingredient.
