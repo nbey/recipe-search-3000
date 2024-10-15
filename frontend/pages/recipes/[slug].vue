@@ -1,5 +1,6 @@
 <template>
-  <div class="container max-w-3xl mx-auto p-4">
+  <div v-if="loading" class="container max-w-3xl mx-auto p-4 text-center">Loading...</div>
+  <div v-else class="container max-w-3xl mx-auto p-4">
     <UCard v-if="recipe" class="p-6 border border-gray-300 rounded-lg shadow-md">
       <div class="border-b border-gray-200 pb-4 mb-4">
         <h1 class="text-3xl font-bold mb-2">{{ recipe.name }}</h1>
@@ -39,6 +40,7 @@ export default {
   setup() {
     const route = useRoute();
     const recipe = ref({});
+    const loading = ref(true);
 
     onMounted(async () => {
       try {
@@ -50,11 +52,14 @@ export default {
         recipe.value = data;
       } catch (error) {
         console.error('Error fetching recipe details:', error);
+      } finally {
+        loading.value = false;
       }
     });
 
     return {
       recipe,
+      loading
     };
   }
 };
