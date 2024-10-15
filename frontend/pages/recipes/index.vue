@@ -6,22 +6,58 @@
         placeholder="Author Email"
         class="w-full md:w-1/3 rounded-md p-2"
         icon="mdi-email"
+        :ui="{ icon: { trailing: { pointer: '' } } }"
         @input="debouncedSearchRecipes"
-      />
+      >
+        <template #trailing>
+          <UButton
+            v-show="searchFilters.authorEmail !== ''"
+            color="gray"
+            variant="link"
+            icon="i-heroicons-x-mark-20-solid"
+            :padded="false"
+            @click="resetSearchField('authorEmail')"
+          />
+        </template>
+      </UInput>
       <UInput
         v-model="searchFilters.keyword"
         placeholder="Keyword"
         class="w-full md:w-1/3 rounded-md p-2"
         icon="mdi-key"
+        :ui="{ icon: { trailing: { pointer: '' } } }"
         @input="debouncedSearchRecipes"
-      />
+      >
+        <template #trailing>
+          <UButton
+            v-show="searchFilters.keyword !== ''"
+            color="gray"
+            variant="link"
+            icon="i-heroicons-x-mark-20-solid"
+            :padded="false"
+            @click="resetSearchField('keyword')"
+          />
+        </template>
+      </UInput>
       <UInput
         v-model="searchFilters.ingredient"
         placeholder="Ingredient"
         class="w-full md:w-1/3 rounded-md p-2"
         icon="mdi-silverware-spoon"
+        :ui="{ icon: { trailing: { pointer: '' } } }"
         @input="debouncedSearchRecipes"
-      />
+      >
+        <template #trailing>
+          <UButton
+            v-show="searchFilters.ingredient !== ''"
+            color="gray"
+            variant="link"
+            icon="i-heroicons-x-mark-20-solid"
+            :padded="false"
+            @click="resetSearchField('ingredient')"
+          />
+        </template>
+      </UInput>
     </div>
     <div v-if="loading" class="container max-w-sm mx-auto p-4 text-center">
       <p>Loading&hellip;</p>
@@ -127,6 +163,10 @@ export default {
     },
     handlePageChange(page) {
       this.pagination.currentPage = page;
+    },
+    resetSearchField(fieldName) {
+      this.searchFilters[fieldName] = '';
+      this.searchRecipes();
     }
   },
   created() {
