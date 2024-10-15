@@ -1,5 +1,8 @@
 <template>
-  <div v-if="loading" class="container max-w-3xl mx-auto p-4 text-center">Loading...</div>
+  <div v-if="loading" class="container max-w-sm mx-auto p-4 text-center">
+    <p>Loading&hellip;</p>
+    <UProgress animation="swing" />
+  </div>
   <div v-else class="container max-w-3xl mx-auto p-4">
     <UCard v-if="recipe" class="p-6 border border-gray-300 rounded-lg shadow-md">
       <div class="border-b border-gray-200 pb-4 mb-4">

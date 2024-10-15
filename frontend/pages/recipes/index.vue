@@ -23,9 +23,22 @@
         @input="debouncedSearchRecipes"
       />
     </div>
-    <div v-if="loading" class="container max-w-3xl mx-auto p-4 text-center">Loading...</div>
+    <div v-if="loading" class="container max-w-sm mx-auto p-4 text-center">
+      <p>Loading&hellip;</p>
+      <UProgress animation="swing" />
+    </div>
     <div v-else>
-      <div>
+      <div v-if="recipes.length === 0">
+        <UCard class="my-12 p-8 border border-gray-300 rounded-lg shadow-md text-center">
+          <div class="border-b border-gray-200 pb-2 mb-2">
+            <h3 class="text-xl font-semibold">No recipes found.</h3>
+          </div>
+          <div class="pt-2">
+            <p class="text-sm text-gray-500">Please try your search again with different parameters</p>
+          </div>
+        </UCard>
+      </div>
+      <div v-else>
         <UCard v-for="recipe in recipes" :key="recipe.id" class="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
           <ULink
             :to="`/recipes/${recipe.slug}`"
