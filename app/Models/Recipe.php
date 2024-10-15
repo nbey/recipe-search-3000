@@ -8,4 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Recipe extends Model
 {
     use HasFactory;
+
+    protected $casts = [
+        'ingredients' => 'array',
+        'steps' => 'array',
+    ];
 }
