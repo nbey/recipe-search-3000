@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RecipeFilterRequest;
 use App\Http\Resources\RecipeResource;
 use App\Services\RecipeService;
-use Illuminate\Http\Request;
 
 class RecipeController extends Controller
 {
@@ -16,9 +16,9 @@ class RecipeController extends Controller
         $this->recipeService = $recipeService;
     }
 
-    public function index(Request $request)
+    public function index(RecipeFilterRequest $request)
     {
-        $filters = $request->only(['author_email', 'keyword', 'ingredient']);
+        $filters = $request->validatedFilters();
         $perPage = $request->get('limit', 5);
 
         $recipes = $this->recipeService->searchRecipes($filters, $perPage);
