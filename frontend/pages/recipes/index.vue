@@ -7,7 +7,7 @@
         class="w-full md:w-1/3 rounded-md p-2"
         icon="mdi-email"
         :ui="{ icon: { trailing: { pointer: '' } } }"
-        @input="debouncedSearchRecipes"
+        @input="debouncedUpdateFilters"
       >
         <template #trailing>
           <UButton
@@ -26,7 +26,7 @@
         class="w-full md:w-1/3 rounded-md p-2"
         icon="mdi-key"
         :ui="{ icon: { trailing: { pointer: '' } } }"
-        @input="debouncedSearchRecipes"
+        @input="debouncedUpdateFilters"
       >
         <template #trailing>
           <UButton
@@ -45,7 +45,7 @@
         class="w-full md:w-1/3 rounded-md p-2"
         icon="mdi-silverware-spoon"
         :ui="{ icon: { trailing: { pointer: '' } } }"
-        @input="debouncedSearchRecipes"
+        @input="debouncedUpdateFilters"
       >
         <template #trailing>
           <UButton
@@ -59,135 +59,184 @@
         </template>
       </UInput>
     </div>
-    <div v-if="loading" class="container max-w-sm mx-auto p-4 text-center">
-      <p>Loading&hellip;</p>
-      <UProgress animation="swing" />
+    <div v-if="recipes && recipes.length === 0">
+      <UCard class="my-12 p-8 border border-gray-300 rounded-lg shadow-md text-center">
+        <div class="border-b border-gray-200 pb-2 mb-2">
+          <h3 class="text-xl font-semibold">No recipes found.</h3>
+        </div>
+        <div class="pt-2">
+          <p class="text-sm text-gray-500">Please try your search again with different parameters</p>
+        </div>
+      </UCard>
     </div>
     <div v-else>
-      <div v-if="recipes.length === 0">
-        <UCard class="my-12 p-8 border border-gray-300 rounded-lg shadow-md text-center">
+      <UCard v-for="recipe in recipes" :key="recipe.id" class="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
+        <ULink
+          :to="`/recipes/${recipe.slug}`"
+          class="no-underline"
+        >
           <div class="border-b border-gray-200 pb-2 mb-2">
-            <h3 class="text-xl font-semibold">No recipes found.</h3>
+            <h3 class="text-xl font-semibold hover:underline">{{ recipe.name }}</h3>
+            <p class="text-sm text-gray-500">by {{ recipe.author_email }}</p>
           </div>
           <div class="pt-2">
-            <p class="text-sm text-gray-500">Please try your search again with different parameters</p>
+            <p>{{ recipe.description }}</p>
           </div>
-        </UCard>
-      </div>
-      <div v-else>
-        <UCard v-for="recipe in recipes" :key="recipe.id" class="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
-          <ULink
-            :to="`/recipes/${recipe.slug}`"
-            class="no-underline"
-          >
-            <div class="border-b border-gray-200 pb-2 mb-2">
-              <h3 class="text-xl font-semibold hover:underline">{{ recipe.name }}</h3>
-              <p class="text-sm text-gray-500">by {{ recipe.author_email }}</p>
-            </div>
-            <div class="pt-2">
-              <p>{{ recipe.description }}</p>
-            </div>
-          </ULink>
-        </UCard>
-      </div>
-      <div v-if="pagination.totalPages > 1" class="flex justify-center mt-6 fixed bottom-4 left-0 right-0 md:static md:mt-6">
-        <UPagination
-          v-model="pagination.currentPage"
-          :total-pages="pagination.totalPages"
-          :total="pagination.totalItems"
-        />
-      </div>
+        </ULink>
+      </UCard>
+    </div>
+    <div v-if="pagination.totalPages > 1" class="flex justify-center mt-6 fixed bottom-4 left-0 right-0 md:static md:mt-6">
+      <UPagination
+        v-model="pagination.currentPage"
+        :total-pages="pagination.totalPages"
+        :total="pagination.totalItems"
+        :page-count="5"
+      />
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      loading: true,
-      searchFilters: {
-        authorEmail: '',
-        keyword: '',
-        ingredient: ''
-      },
-      recipes: [],
-      pagination: {
-        currentPage: 1,
-        totalPages: 0,
-        totalItems: 0,
-      }
-    };
-  },
-  watch: {
-    'pagination.currentPage': 'searchRecipes'
-  },
-  methods: {
-    debounce(func, wait) {
-      let timeout;
-      return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-      };
-    },
-    async searchRecipes() {
-      try {
-        this.loading = true;
+<script setup>
+import { ref, watch, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
-        const params = new URLSearchParams({
-          author_email: this.searchFilters.authorEmail,
-          keyword: this.searchFilters.keyword,
-          ingredient: this.searchFilters.ingredient,
-          page: this.pagination.currentPage
-        });
+// State
+const loading = ref(false);
+const searchFilters = ref({
+  authorEmail: '',
+  keyword: '',
+  ingredient: ''
+});
+const recipes = ref([]);
+const pagination = ref({
+  currentPage: 1,
+  totalPages: 0,
+  totalItems: 0,
+});
 
-        const response = await fetch(`http://localhost:8888/api/v1/recipes?${params.toString()}`);
+// Router
+const route = useRoute();
+const router = useRouter();
 
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
+// Config
+const config = useRuntimeConfig();
 
-        const { data: recipes, meta: { last_page: totalPages, total: totalItems } } = await response.json();
+// Debounce Utility
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
-        this.recipes = recipes;
-        this.pagination = {
-          ...this.pagination,
-          totalPages,
-          totalItems,
-        };
-      } catch (error) {
-        console.error('Error fetching recipes:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
-    handlePageChange(page) {
-      this.pagination.currentPage = page;
-    },
-    resetSearchField(fieldName) {
-      this.searchFilters[fieldName] = '';
-      this.searchRecipes();
-    }
-  },
-  created() {
-    this.debouncedSearchRecipes = this.debounce(() => {
-      if (this.pagination.currentPage !== 1) {
-        // reset the current page, which triggers searchRecipes
-        this.pagination.currentPage = 1;
-      } else {
-        this.searchRecipes();
-      }
-    }, 800);
-  },
-  mounted() {
-    if (this.$route.query) {
-      this.searchFilters.authorEmail = this.$route.query.authorEmail || '';
-      this.searchFilters.keyword = this.$route.query.keyword || '';
-      this.searchFilters.ingredient = this.$route.query.ingredient || '';
-      this.pagination.currentPage = parseInt(this.$route.query.page) || 1;
-    }
-    this.searchRecipes();
+// API Call
+const searchRecipes = async () => {
+  let query = {
+    author_email: searchFilters?.value?.authorEmail,
+    keyword: searchFilters?.value?.keyword,
+    ingredient: searchFilters?.value?.ingredient,
+    page: pagination?.value?.currentPage,
+  };
+
+  if (!hasRouteChanged(query)) {
+    return;
   }
 
+  try {
+    loading.value = true;
+
+    const params = new URLSearchParams(query);
+
+    const {
+      data,
+      meta: { current_page, last_page, total }
+    } = await $fetch(`${config.public.apiBaseClient}/api/v1/recipes?${params.toString()}`, 'recipes');
+
+    recipes.value = data;
+    pagination.value = {
+      currentPage: current_page,
+      totalPages: last_page,
+      totalItems: total,
+    };
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+    if (error.statusCode === 422) { // handle invalid request errors
+      recipes.value = [];
+    }
+  } finally {
+    loading.value = false;
+  }
 };
+
+const hasRouteChanged = (newQuery) => {
+  const currentQuery = route.query;
+  return (
+    currentQuery.authorEmail !== newQuery.authorEmail ||
+    currentQuery.keyword !== newQuery.keyword ||
+    currentQuery.ingredient !== newQuery.ingredient ||
+    parseInt(currentQuery.page) !== newQuery.page
+  );
+};
+
+// Sync filters to route query
+const updateRouteWithFilters = () => {
+  const query = {
+    authorEmail: searchFilters.value.authorEmail || undefined,
+    keyword: searchFilters.value.keyword || undefined,
+    ingredient: searchFilters.value.ingredient || undefined,
+  };
+
+  // Only include the `page` query parameter if it's greater than 1
+  if (pagination.value.currentPage > 1) {
+    query.page = pagination.value.currentPage;
+  }
+
+  // Update the route with the cleaned query parameters
+  router.push({ query });
+};
+
+// Debounced Update of Filters and Route
+const debouncedUpdateFilters = debounce(() => {
+  if (pagination.value.currentPage !== 1) {
+    pagination.value.currentPage = 1; // Reset page to 1 on new filter
+  }
+  updateRouteWithFilters();
+}, 800);
+
+// Reset Search Filters
+const resetSearchField = (fieldName) => {
+  searchFilters.value[fieldName] = '';
+  updateRouteWithFilters();
+};
+
+// Watcher for page change
+watch(
+  () => pagination.value.currentPage,   // Watch the current page value
+  (newPage) => {
+    updateRouteWithFilters();  // Update the route when the page changes
+  }
+);
+
+// Watch Route Query for Changes
+watch(
+  () => route.query,
+  (newQuery) => {
+    searchFilters.value.authorEmail = newQuery.authorEmail || '';
+    searchFilters.value.keyword = newQuery.keyword || '';
+    searchFilters.value.ingredient = newQuery.ingredient || '';
+    pagination.value.currentPage = parseInt(newQuery.page) || 1;
+    searchRecipes();
+  },
+  { immediate: true }
+);
+
+// Initial Fetch on Mounted
+onMounted(() => {
+  // Set filters and pagination from route query if available
+  searchFilters.value.authorEmail = route.query.authorEmail || '';
+  searchFilters.value.keyword = route.query.keyword || '';
+  searchFilters.value.ingredient = route.query.ingredient || '';
+  pagination.value.currentPage = parseInt(route.query.page) || 1;
+});
 </script>
