@@ -59,31 +59,37 @@
         </template>
       </UInput>
     </div>
-    <div v-if="recipes && recipes.length === 0">
-      <UCard class="my-12 p-8 border border-gray-300 rounded-lg shadow-md text-center">
-        <div class="border-b border-gray-200 pb-2 mb-2">
-          <h3 class="text-xl font-semibold">No recipes found.</h3>
-        </div>
-        <div class="pt-2">
-          <p class="text-sm text-gray-500">Please try your search again with different parameters</p>
-        </div>
-      </UCard>
+    <div v-if="loading" class="container max-w-sm mx-auto p-4 text-center">
+      <p>Loading&hellip;</p>
+      <UProgress animation="swing" />
     </div>
     <div v-else>
-      <UCard v-for="recipe in recipes" :key="recipe.id" class="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
-        <ULink
-          :to="`/recipes/${recipe.slug}`"
-          class="no-underline"
-        >
+      <div v-if="recipes && recipes.length === 0">
+        <UCard class="my-12 p-8 border border-gray-300 rounded-lg shadow-md text-center">
           <div class="border-b border-gray-200 pb-2 mb-2">
-            <h3 class="text-xl font-semibold hover:underline">{{ recipe.name }}</h3>
-            <p class="text-sm text-gray-500">by {{ recipe.author_email }}</p>
+            <h3 class="text-xl font-semibold">No recipes found.</h3>
           </div>
           <div class="pt-2">
-            <p>{{ recipe.description }}</p>
+            <p class="text-sm text-gray-500">Please try your search again with different parameters</p>
           </div>
-        </ULink>
-      </UCard>
+        </UCard>
+      </div>
+      <div v-else>
+        <UCard v-for="recipe in recipes" :key="recipe.id" class="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
+          <ULink
+            :to="`/recipes/${recipe.slug}`"
+            class="no-underline"
+          >
+            <div class="border-b border-gray-200 pb-2 mb-2">
+              <h3 class="text-xl font-semibold hover:underline">{{ recipe.name }}</h3>
+              <p class="text-sm text-gray-500">by {{ recipe.author_email }}</p>
+            </div>
+            <div class="pt-2">
+              <p>{{ recipe.description }}</p>
+            </div>
+          </ULink>
+        </UCard>
+      </div>
     </div>
     <div v-if="pagination.totalPages > 1" class="flex justify-center mt-6 fixed bottom-4 left-0 right-0 md:static md:mt-6">
       <UPagination
