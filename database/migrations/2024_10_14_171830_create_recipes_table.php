@@ -16,12 +16,15 @@ class CreateRecipesTable extends Migration
         Schema::create('recipes', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('author_email');
             $table->text('description');
             $table->string('slug')->unique();
-            $table->json('ingredients');
-            $table->json('steps');
             $table->timestamps();
+
+            // Foreign Keys
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
+            // Indexes
+            $table->index('user_id');
         });
     }
 

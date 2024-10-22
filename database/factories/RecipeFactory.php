@@ -2,7 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\Ingredient;
 use App\Models\Recipe;
+use App\Models\Step;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -12,44 +15,35 @@ class RecipeFactory extends Factory
 
     public function definition()
     {
+        $name = $this->faker->sentence;
         return [
-            'name' => $this->faker->sentence(3),
-            'author_email' => $this->faker->unique()->safeEmail,
+            'name' => $name,
+            'slug' => Str::slug($name),
             'description' => $this->faker->paragraph,
-            'slug' => Str::slug($this->faker->sentence(3)),
-            'ingredients' => json_encode($this->generateIngredients()),
-            'steps' => json_encode($this->generateSteps()),
+            'user_id' => $this->faker->boolean(User::count() ? 70 : 0) ? User::inRandomOrder()->first()->id : User::factory(),
         ];
     }
 
-    private function generateIngredients()
+    public function configure()
     {
-        $ingredients = [];
-        $count = $this->faker->numberBetween(3, 10);
+        return $this->afterCreating(function (Recipe $recipe) {
+            // Attach ingredients to the recipe
+            $ingredients = Ingredient::inRandomOrder()->take(rand(2, 5))->get();
+            foreach ($ingredients as $ingredient) {
+                $recipe->ingredients()->attach($ingredient->id, [
+                    'amount' => $this->faker->randomFloat(2, 1, 100),
+                    'unit' => $this->faker->randomElement(['grams', 'cups', 'tablespoons']),
+                ]);
+            }
 
-        for ($i = 0; $i < $count; $i++) {
-            $ingredients[] = [
-                'name' => $this->faker->word,
-                'amount' => $this->faker->randomFloat(2, 0.1, 5),
-                'unit' => $this->faker->randomElement(['cup', 'tbsp', 'tsp', 'oz', 'lb', 'g', 'ml']),
-            ];
-        }
-
-        return $ingredients;
-    }
-
-    private function generateSteps()
-    {
-        $steps = [];
-        $count = $this->faker->numberBetween(3, 8);
-
-        for ($i = 0; $i < $count; $i++) {
-            $steps[] = [
-                'order' => $i + 1,
-                'instruction' => $this->faker->sentence(10, true),
-            ];
-        }
-
-        return $steps;
+            // Create steps for the recipe
+            foreach (range(1, rand(3, 7)) as $index) {
+                Step::create([
+                    'recipe_id' => $recipe->id,
+                    'description' => $this->faker->sentence,
+                    'sort_order' => $index,
+                ]);
+            }
+        });
     }
 }

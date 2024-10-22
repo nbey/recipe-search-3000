@@ -17,16 +17,19 @@ class RecipeService
     /**
      * Search recipes by author email, keyword, and ingredient.
      *
-     * @param array $filters
+     * @param array $filters An array of filters for searching recipes
+     * @param int $perPage Defaults to 15
      * @return LengthAwarePaginator
      */
-    public function searchRecipes(array $filters, int $perPage = 15)
+    public function searchRecipes(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         $query = Recipe::query();
 
         // Filter by author email (exact match)
         if (!empty($filters['author_email'])) {
-            $query->where('author_email', $filters['author_email']);
+            $query->whereHas('author', function ($q) use ($filters) {
+                $q->where('email', $filters['author_email']);
+            });
         }
 
         // Filter by keyword (matches name, description, ingredients, or steps)
@@ -34,25 +37,24 @@ class RecipeService
             $keyword = $filters['keyword'];
             $query->where(function ($q) use ($keyword) {
                 $q->where('name', 'like', "%{$keyword}%")
-                    ->orWhere('description', 'like', "%{$keyword}%");
+                    ->orWhere('description', 'like', "%{$keyword}%")
+                    ->orWhereHas('ingredients', function ($q) use ($keyword) {
+                        $q->where('name', 'like', "%{$keyword}%");
+                    })
+                    ->orWhereHas('steps', function ($q) use ($keyword) {
+                        $q->where('description', 'like', "%{$keyword}%");
+                    });
             });
         }
 
-        // Filter by ingredient name (partial match in JSON column)
+        // Filter by ingredient name (partial match)
         if (!empty($filters['ingredient'])) {
-          // Support for MySQL json columns
-          // todo: consider alternatives
-          $ingredient = $filters['ingredient'];
-            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(ingredients, '$[*].name')) LIKE ?", ["%{$ingredient}%"]);
+            $ingredient = $filters['ingredient'];
+            $query->whereHas('ingredients', function ($q) use ($ingredient) {
+                $q->where('name', 'like', "%{$ingredient}%");
+            });
         }
 
-        // Filter by step instruction (partial match in JSON column)
-        if (!empty($filters['keyword'])) {
-          $keyword = $filters['keyword'];
-          $query->orWhere('steps', 'like', "%\"instruction\": \"%{$keyword}%\"");
-        }
-
-        return $query->paginate($perPage)
-          ->appends($filters);
+        return $query->paginate($perPage)->appends($filters);
     }
 }
