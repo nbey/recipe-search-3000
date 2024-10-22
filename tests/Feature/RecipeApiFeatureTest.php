@@ -161,4 +161,24 @@ class RecipeApiFeatureTest extends TestCase
         $response->assertStatus(200)
                  ->assertJsonFragment(['slug' => 'wild-alaskan']);
     }
+
+    /** @test */
+    public function it_can_search_by_keyword_and_ingredient()
+    {
+        Recipe::factory()->create(['name' => 'Coho Salmon', 'description' => 'WAC']);
+        $recipe = Recipe::factory()->create(['name' => 'Ground Sockeye Salmon', 'description' => 'WAC']);
+        $ingredient = Ingredient::create([
+            'name' => 'Nafis'
+        ]);
+        $recipe->ingredients()->attach($ingredient->id, [
+            'amount' => 10,
+            'unit' => 'kilogram'
+        ]);
+
+        $response = $this->getJson('/api/v1/recipes?keyword=WAC&ingredient=Nafis');
+
+        $response->assertStatus(200)
+                 ->assertJsonCount(1, 'data')
+                 ->assertJsonFragment(['name' => 'Ground Sockeye Salmon']);
+    }
 }
